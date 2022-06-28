@@ -50,11 +50,20 @@ func (self *CQLHelper) GetNLimit(table string, limit int, pks []*F, fields ...st
 	return self.db.Query(q, values...)
 }
 
-func (self *CQLHelper) GetNLimitFilterBlockHeight(table string, limit int, blockHeight uint, pks []*F, fields ...string) *gocql.Query {
+func (self *CQLHelper) GetNLimitFilterBeforeBlockHeight(table string, limit int, beforeBH uint, pks []*F, fields ...string) *gocql.Query {
 	keys, values := self.andKeysAndValues(pks...)
-	strBlockHeight := strconv.Itoa(int(blockHeight))
-	q := "select " + strings.Join(fields, ", ") + " from " + table + " where " + keys + " and bheight<=" + strBlockHeight +
+	strBeforeBH := strconv.Itoa(int(beforeBH))
+	q := "select " + strings.Join(fields, ", ") + " from " + table + " where " + keys + " and bheight<=" + strBeforeBH +
 		" limit " + strconv.Itoa(limit)
+	return self.db.Query(q, values...)
+}
+
+func (self *CQLHelper) GetNLimitFilterBlockHeights(table string, limit int, beforeBH, afterBH uint, pks []*F, fields ...string) *gocql.Query {
+	keys, values := self.andKeysAndValues(pks...)
+	strBeforeBH := strconv.Itoa(int(beforeBH))
+	strAfterBH := strconv.Itoa(int(afterBH))
+	q := "select " + strings.Join(fields, ", ") + " from " + table + " where " + keys + " and bheight<=" + strBeforeBH +
+		" and bheight>=" + strAfterBH + " limit " + strconv.Itoa(limit)
 	return self.db.Query(q, values...)
 }
 

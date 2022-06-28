@@ -151,9 +151,15 @@ func (self *DataAccess) PartitionIterLimit(dao DAOLite, limit int) *gocql.Iter {
 	return q.PageSize(2000).Consistency(gocql.LocalQuorum).Iter()
 }
 
-func (self *DataAccess) PartitionIterLimitFilterBlockHeight(dao DAOLite, limit int, blockHeight uint) *gocql.Iter {
+func (self *DataAccess) PartitionIterLimitFilterBeforeBlockHeight(dao DAOLite, limit int, blockHeight uint) *gocql.Iter {
 	colsToGet := append(self.ColNamesOfKind(dao, NON_KEY), self.ColNamesOfKind(dao, CLUSTERING_KEY)...)
-	q := self.helper.GetNLimitFilterBlockHeight(dao.TableName(), limit, blockHeight, self.PartitionKeys(dao), colsToGet...)
+	q := self.helper.GetNLimitFilterBeforeBlockHeight(dao.TableName(), limit, blockHeight, self.PartitionKeys(dao), colsToGet...)
+	return q.PageSize(2000).Consistency(gocql.LocalQuorum).Iter()
+}
+
+func (self *DataAccess) PartitionIterLimitFilterBlockHeights(dao DAOLite, limit int, beforeBH, afterBH uint) *gocql.Iter {
+	colsToGet := append(self.ColNamesOfKind(dao, NON_KEY), self.ColNamesOfKind(dao, CLUSTERING_KEY)...)
+	q := self.helper.GetNLimitFilterBlockHeights(dao.TableName(), limit, beforeBH, afterBH, self.PartitionKeys(dao), colsToGet...)
 	return q.PageSize(2000).Consistency(gocql.LocalQuorum).Iter()
 }
 
