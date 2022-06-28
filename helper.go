@@ -58,6 +58,14 @@ func (self *CQLHelper) GetNLimitFilterBeforeBlockHeight(table string, limit int,
 	return self.db.Query(q, values...)
 }
 
+func (self *CQLHelper) GetNLimitFilterAfterBlockHeight(table string, limit int, beforeBH uint, pks []*F, fields ...string) *gocql.Query {
+	keys, values := self.andKeysAndValues(pks...)
+	strBeforeBH := strconv.Itoa(int(beforeBH))
+	q := "select " + strings.Join(fields, ", ") + " from " + table + " where " + keys + " and bheight>=" + strBeforeBH +
+		" limit " + strconv.Itoa(limit)
+	return self.db.Query(q, values...)
+}
+
 func (self *CQLHelper) GetNLimitFilterBlockHeights(table string, limit int, beforeBH, afterBH uint, pks []*F, fields ...string) *gocql.Query {
 	keys, values := self.andKeysAndValues(pks...)
 	strBeforeBH := strconv.Itoa(int(beforeBH))

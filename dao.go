@@ -157,6 +157,12 @@ func (self *DataAccess) PartitionIterLimitFilterBeforeBlockHeight(dao DAOLite, l
 	return q.PageSize(2000).Consistency(gocql.LocalQuorum).Iter()
 }
 
+func (self *DataAccess) PartitionIterLimitFilterAfterBlockHeight(dao DAOLite, limit int, blockHeight uint) *gocql.Iter {
+	colsToGet := append(self.ColNamesOfKind(dao, NON_KEY), self.ColNamesOfKind(dao, CLUSTERING_KEY)...)
+	q := self.helper.GetNLimitFilterAfterBlockHeight(dao.TableName(), limit, blockHeight, self.PartitionKeys(dao), colsToGet...)
+	return q.PageSize(2000).Consistency(gocql.LocalQuorum).Iter()
+}
+
 func (self *DataAccess) PartitionIterLimitFilterBlockHeights(dao DAOLite, limit int, beforeBH, afterBH uint) *gocql.Iter {
 	colsToGet := append(self.ColNamesOfKind(dao, NON_KEY), self.ColNamesOfKind(dao, CLUSTERING_KEY)...)
 	q := self.helper.GetNLimitFilterBlockHeights(dao.TableName(), limit, beforeBH, afterBH, self.PartitionKeys(dao), colsToGet...)
