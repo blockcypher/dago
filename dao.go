@@ -50,6 +50,11 @@ type DataAccess struct {
 	defMutex       *sync.RWMutex
 }
 
+type Iter interface {
+	Close() error
+	Scan(dest ...interface{}) bool
+}
+
 // field definition for a DAO, cached by type name to avoid recomputing
 // on each operation
 type fieldDef struct {
@@ -100,7 +105,8 @@ func (self *DataAccess) SavePartial(dao DAOLite, fields ...string) error {
 // remaining fields appropriately. The DAO is updated in place and also returned for
 // convenience.
 // Example:
-//   user, err := da.Get(&User{Country: "US", SSN: "890-123-4567"})
+//
+//	user, err := da.Get(&User{Country: "US", SSN: "890-123-4567"})
 func (self *DataAccess) Get(dao DAOLite) (DAOLite, error) {
 	return self.GetBy(self.Keys(dao), dao)
 }
@@ -135,47 +141,48 @@ func (self *DataAccess) GetByTable(table string, keys []*F, dao DAOLite) (DAOLit
 // instance is expected to have values for those keys. Combine with the Next method for full
 // iteration.
 // Example:
-//   user := &User{Country: "US", State: "CA"}
-//   iter := da.PartitionIter(user)
-//   for da.Next(iter, user) {...}
-//   iter.Close()
-func (self *DataAccess) PartitionIter(dao DAOLite) *gocql.Iter {
+//
+//	user := &User{Country: "US", State: "CA"}
+//	iter := da.PartitionIter(user)
+//	for da.Next(iter, user) {...}
+//	iter.Close()
+func (self *DataAccess) PartitionIter(dao DAOLite) Iter {
 	colsToGet := append(self.ColNamesOfKind(dao, NON_KEY), self.ColNamesOfKind(dao, CLUSTERING_KEY)...)
 	q := self.helper.GetN(dao.TableName(), self.PartitionKeys(dao), colsToGet...)
 	return q.PageSize(2000).Consistency(gocql.LocalQuorum).Iter()
 }
 
-func (self *DataAccess) PartitionIterLimit(dao DAOLite, limit int) *gocql.Iter {
+func (self *DataAccess) PartitionIterLimit(dao DAOLite, limit int) Iter {
 	colsToGet := append(self.ColNamesOfKind(dao, NON_KEY), self.ColNamesOfKind(dao, CLUSTERING_KEY)...)
 	q := self.helper.GetNLimit(dao.TableName(), limit, self.PartitionKeys(dao), colsToGet...)
 	return q.PageSize(2000).Consistency(gocql.LocalQuorum).Iter()
 }
 
-func (self *DataAccess) PartitionIterLimitFilterBeforeBlockHeight(dao DAOLite, limit int, blockHeight uint) *gocql.Iter {
+func (self *DataAccess) PartitionIterLimitFilterBeforeBlockHeight(dao DAOLite, limit int, blockHeight uint) Iter {
 	colsToGet := append(self.ColNamesOfKind(dao, NON_KEY), self.ColNamesOfKind(dao, CLUSTERING_KEY)...)
 	q := self.helper.GetNLimitFilterBeforeBlockHeight(dao.TableName(), limit, blockHeight, self.PartitionKeys(dao), colsToGet...)
 	return q.PageSize(2000).Consistency(gocql.LocalQuorum).Iter()
 }
 
-func (self *DataAccess) PartitionIterLimitFilterAfterBlockHeight(dao DAOLite, limit int, blockHeight uint) *gocql.Iter {
+func (self *DataAccess) PartitionIterLimitFilterAfterBlockHeight(dao DAOLite, limit int, blockHeight uint) Iter {
 	colsToGet := append(self.ColNamesOfKind(dao, NON_KEY), self.ColNamesOfKind(dao, CLUSTERING_KEY)...)
 	q := self.helper.GetNLimitFilterAfterBlockHeight(dao.TableName(), limit, blockHeight, self.PartitionKeys(dao), colsToGet...)
 	return q.PageSize(2000).Consistency(gocql.LocalQuorum).Iter()
 }
 
-func (self *DataAccess) PartitionIterLimitFilterBlockHeights(dao DAOLite, limit int, beforeBH, afterBH uint) *gocql.Iter {
+func (self *DataAccess) PartitionIterLimitFilterBlockHeights(dao DAOLite, limit int, beforeBH, afterBH uint) Iter {
 	colsToGet := append(self.ColNamesOfKind(dao, NON_KEY), self.ColNamesOfKind(dao, CLUSTERING_KEY)...)
 	q := self.helper.GetNLimitFilterBlockHeights(dao.TableName(), limit, beforeBH, afterBH, self.PartitionKeys(dao), colsToGet...)
 	return q.PageSize(2000).Consistency(gocql.LocalQuorum).Iter()
 }
 
-func (self *DataAccess) FullIter(dao DAOLite) *gocql.Iter {
+func (self *DataAccess) FullIter(dao DAOLite) Iter {
 	colsToGet := append(self.ColNamesOfKind(dao, ANY), self.ColNamesOfKind(dao, CLUSTERING_KEY)...)
 	return self.helper.FullScan(dao.TableName(), colsToGet...)
 }
 
 // See PartitionIter
-func (self *DataAccess) Next(iter *gocql.Iter, dao DAOLite) bool {
+func (self *DataAccess) Next(iter Iter, dao DAOLite) bool {
 	fieldsToGet := append(self.FieldNamesOfKind(dao, NON_KEY), self.FieldNamesOfKind(dao, CLUSTERING_KEY)...)
 	values := self.fieldsZeroValuesArray(dao, fieldsToGet)
 	next := iter.Scan(values...)
